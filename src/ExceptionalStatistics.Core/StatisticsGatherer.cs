@@ -1,14 +1,16 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
+using System.Collections.Immutable;
 
 namespace ExceptionalStatistics.Core;
 
 public sealed class StatisticsGatherer
 {
 	public StatisticsGatherer(string code) =>
-		(this.ExpressionsCount, this.StatementsCount, this.BadCatchBlocksCount) =
+		(this.ExpressionsCount, this.StatementsCount, this.BadCatchBlocksCount, this.BadCatchClauses) =
 			new StatisticsWalker(SyntaxFactory.ParseCompilationUnit(code));
 
+	public ImmutableArray<CatchClauseSyntax> BadCatchClauses { get; }
 	public uint BadCatchBlocksCount { get; }
 	public uint ExpressionsCount { get; }
 	public uint StatementsCount { get; }
@@ -16,11 +18,14 @@ public sealed class StatisticsGatherer
 	private sealed class StatisticsWalker
 		: CSharpSyntaxWalker
 	{
+		private readonly List<CatchClauseSyntax> catchClauses = new();
+
 		public StatisticsWalker(CompilationUnitSyntax unit) => this.VisitCompilationUnit(unit);
 
-		public void Deconstruct(out uint expressionsCount, out uint statementsCount, out uint badCatchBlocksCount) =>
-			(expressionsCount, statementsCount, badCatchBlocksCount) =
-				(this.ExpressionsCount, this.StatementsCount, this.BadCatchBlocksCount);
+		public void Deconstruct(out uint expressionsCount, out uint statementsCount, out uint badCatchBlocksCount, 
+			out ImmutableArray<CatchClauseSyntax> badCatchClauses) =>
+			(expressionsCount, statementsCount, badCatchBlocksCount, badCatchClauses) =
+				(this.ExpressionsCount, this.StatementsCount, this.BadCatchBlocksCount, this.BadCatchClauses);
 
 		#region Statements
 		public override void VisitExpressionStatement(ExpressionStatementSyntax node)
@@ -474,14 +479,7 @@ public sealed class StatisticsGatherer
 			// TODO: I may have to try and "get" a SemanticModel
 			// to determine exactly what the exception type is.
 
-			// TODO: I want to capture where this is happening
-			// So, I may have to recursively look at the parents
-			// and look for a node that is of type MemberDeclarationSyntax
-			// (maybe I can be specific and say MethodDeclarationSyntax)
-			// Maybe I just keep a running List<CatchClauseSyntax> and
-			// provide an ImmutableArray<CatchClauseSyntax> as a getter
-			// that I can look at later.
-
+			// TODO: I wonder how many of these have associated filters.
 			if (!node.Block.DescendantNodes(_ => true).Any())
 			{
 				var catchDeclaration = node.DescendantNodes().OfType<CatchDeclarationSyntax>().SingleOrDefault();
@@ -490,6 +488,7 @@ public sealed class StatisticsGatherer
 					catchDeclaration.Type.ToString() == "Exception" ||
 					catchDeclaration.Type.ToString() == "System.Exception")
 				{
+					this.catchClauses.Add(node);
 					this.BadCatchBlocksCount++;
 				}
 			}
@@ -497,6 +496,7 @@ public sealed class StatisticsGatherer
 			base.VisitCatchClause(node);
 		}
 
+		public ImmutableArray<CatchClauseSyntax> BadCatchClauses => this.catchClauses.ToImmutableArray();
 		public uint BadCatchBlocksCount { get; private set; }
 		public uint ExpressionsCount { get; private set; }
 		public uint StatementsCount { get; private set; }
