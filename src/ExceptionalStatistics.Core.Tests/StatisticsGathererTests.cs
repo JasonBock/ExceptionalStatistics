@@ -4,7 +4,8 @@ namespace ExceptionalStatistics.Core.Tests;
 
 public static class StatisticsGathererTests
 {
-	// TODO: Add tests for passing in a file
+	// TODO: Add tests for passing in a file,
+	// and for having filtered exceptions
 
 	[Test]
 	public static void CheckStatementsCount()
@@ -59,7 +60,7 @@ public static class StatisticsGathererTests
 	}
 }";
 		var gatherer = new StatisticsGatherer(code);
-		Assert.That(gatherer.BadCatchBlocksCount, Is.EqualTo(1));
+		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(1));
 	}
 
 	[Test]
@@ -80,7 +81,7 @@ public static class StatisticsGathererTests
 	}
 }";
 		var gatherer = new StatisticsGatherer(code);
-		Assert.That(gatherer.BadCatchBlocksCount, Is.EqualTo(0));
+		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(0));
 	}
 
 	[Test]
@@ -100,7 +101,7 @@ public static class Test
 	}
 }";
 		var gatherer = new StatisticsGatherer(code);
-		Assert.That(gatherer.BadCatchBlocksCount, Is.EqualTo(0));
+		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(0));
 	}
 
 	[Test]
@@ -120,7 +121,7 @@ public static class Test
 	}
 }";
 		var gatherer = new StatisticsGatherer(code);
-		Assert.That(gatherer.BadCatchBlocksCount, Is.EqualTo(1));
+		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(1));
 	}
 
 	[Test]
@@ -143,7 +144,7 @@ public static class Test
 	}
 }";
 		var gatherer = new StatisticsGatherer(code);
-		Assert.That(gatherer.BadCatchBlocksCount, Is.EqualTo(0));
+		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(0));
 	}
 
 	[Test]
@@ -161,6 +162,6 @@ public static class Test
 	}
 }";
 		var gatherer = new StatisticsGatherer(code);
-		Assert.That(gatherer.BadCatchBlocksCount, Is.EqualTo(1));
+		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(1));
 	}
 }

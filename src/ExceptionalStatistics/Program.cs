@@ -24,21 +24,19 @@ await Parallel.ForEachAsync(Directory.EnumerateFiles("M:\\repos\\roslyn", "*.cs"
 		}
 	}).ConfigureAwait(false);
 
-//foreach (var file in Directory.EnumerateFiles("C:\\Users\\jason\\source\\repos\\ExceptionalStatistics\\src", "*.cs", SearchOption.AllDirectories))
-//{
-//	fileCount++;
-//	//await Console.Out.WriteLineAsync($"Processing {file}...").ConfigureAwait(false);
-//	statistics += new StatisticsGatherer(await File.ReadAllTextAsync(file).ConfigureAwait(false));
-//}
-
 await Console.Out.WriteLineAsync($"Total number of files: {fileCount}").ConfigureAwait(false);
 await Console.Out.WriteLineAsync($"Number of statements: {statistics.StatementsCount}").ConfigureAwait(false);
 await Console.Out.WriteLineAsync($"Number of expressions: {statistics.ExpressionsCount}").ConfigureAwait(false);
-await Console.Out.WriteLineAsync($"Number of bad catch blocks: {statistics.BadCatchBlocksCount}").ConfigureAwait(false);
+await Console.Out.WriteLineAsync($"Number of bad catch blocks: {statistics.BadCatchClauses.Count}").ConfigureAwait(false);
+await Console.Out.WriteLineAsync($"Number of empty catch blocks with filters: {statistics.EmptyCatchBlockWithFilterClauses.Count}").ConfigureAwait(false);
+
+await Console.Out.WriteLineAsync().ConfigureAwait(false);
+await Console.Out.WriteLineAsync("Bad Catch Clauses").ConfigureAwait(false);
+await Console.Out.WriteLineAsync().ConfigureAwait(false);
 
 foreach (var (file, catchClauses) in statistics.BadCatchClauses)
 {
-	await Console.Out.WriteLineAsync($"File: {file.FullName}").ConfigureAwait(false);
+	await Console.Out.WriteLineAsync($"\tFile: {file.FullName}").ConfigureAwait(false);
 
 	foreach (var catchClause in catchClauses)
 	{
@@ -54,10 +52,41 @@ foreach (var (file, catchClauses) in statistics.BadCatchClauses)
 				var namespaceDeclaration = typeDeclaration.Ancestors(true).OfType<BaseNamespaceDeclarationSyntax>().FirstOrDefault();
 
 				await Console.Out.WriteLineAsync(
-					 $"\t{(namespaceDeclaration is not null ? namespaceDeclaration.Name + "." : "global::")}{typeDeclaration.Identifier.Text}.{declarationNode.Identifier.Text}()").ConfigureAwait(false);
+					 $"\t\t{(namespaceDeclaration is not null ? namespaceDeclaration.Name + "." : "global::")}{typeDeclaration.Identifier.Text}.{declarationNode.Identifier.Text}()").ConfigureAwait(false);
 				var catchClauseSpan = catchClause.GetLocation().GetMappedLineSpan();
-				await Console.Out.WriteLineAsync($"\tStart line location: {catchClauseSpan.StartLinePosition.Line + 1}").ConfigureAwait(false);
-				await Console.Out.WriteLineAsync($"\tEnd line location: {catchClauseSpan.StartLinePosition.Line + 1}").ConfigureAwait(false);
+				await Console.Out.WriteLineAsync($"\t\tStart line location: {catchClauseSpan.StartLinePosition.Line + 1}").ConfigureAwait(false);
+				await Console.Out.WriteLineAsync($"\t\tEnd line location: {catchClauseSpan.StartLinePosition.Line + 1}").ConfigureAwait(false);
+			}
+		}
+	}
+}
+
+await Console.Out.WriteLineAsync().ConfigureAwait(false);
+await Console.Out.WriteLineAsync("Empty Catch Block With Filter Clauses").ConfigureAwait(false);
+await Console.Out.WriteLineAsync().ConfigureAwait(false);
+
+foreach (var (file, catchClauses) in statistics.EmptyCatchBlockWithFilterClauses)
+{
+	await Console.Out.WriteLineAsync($"\tFile: {file.FullName}").ConfigureAwait(false);
+
+	foreach (var catchClause in catchClauses)
+	{
+		var declarationNode = catchClause.Ancestors(true).OfType<MethodDeclarationSyntax>()
+			.FirstOrDefault();
+
+		if (declarationNode is not null)
+		{
+			var typeDeclaration = declarationNode.Ancestors(true).OfType<TypeDeclarationSyntax>().FirstOrDefault();
+
+			if (typeDeclaration is not null)
+			{
+				var namespaceDeclaration = typeDeclaration.Ancestors(true).OfType<BaseNamespaceDeclarationSyntax>().FirstOrDefault();
+
+				await Console.Out.WriteLineAsync(
+					 $"\t\t{(namespaceDeclaration is not null ? namespaceDeclaration.Name + "." : "global::")}{typeDeclaration.Identifier.Text}.{declarationNode.Identifier.Text}()").ConfigureAwait(false);
+				var catchClauseSpan = catchClause.GetLocation().GetMappedLineSpan();
+				await Console.Out.WriteLineAsync($"\t\tStart line location: {catchClauseSpan.StartLinePosition.Line + 1}").ConfigureAwait(false);
+				await Console.Out.WriteLineAsync($"\t\tEnd line location: {catchClauseSpan.StartLinePosition.Line + 1}").ConfigureAwait(false);
 			}
 		}
 	}
@@ -72,18 +101,23 @@ internal sealed class Statistics
 	internal Statistics() { }
 
 	public static Statistics operator +(Statistics left, StatisticsGatherer right) =>
-		new(left.BadCatchBlocksCount + right.BadCatchBlocksCount,
-			left.ExpressionsCount + right.ExpressionsCount,
+		new(left.ExpressionsCount + right.ExpressionsCount,
 			left.StatementsCount + right.StatementsCount,
-			right.BadCatchClauses.Length > 0 ? left.BadCatchClauses.Add(right.File!, right.BadCatchClauses) : left.BadCatchClauses);
+			right.BadCatchClauses.Length > 0 ? 
+				left.BadCatchClauses.Add(right.File!, right.BadCatchClauses) : 
+				left.BadCatchClauses,
+			right.EmptyCatchBlockWithFilterClauses.Length > 0 ? 
+				left.EmptyCatchBlockWithFilterClauses.Add(right.File!, right.EmptyCatchBlockWithFilterClauses) : 
+			left.EmptyCatchBlockWithFilterClauses);
 
-	private Statistics(uint badCatchBlocksCount, uint expressionsCount, uint statementsCount,
-		ImmutableDictionary<FileInfo, ImmutableArray<CatchClauseSyntax>> badCatchClauses) =>
-		(this.BadCatchBlocksCount, this.ExpressionsCount, this.StatementsCount, this.BadCatchClauses) =
-			(badCatchBlocksCount, expressionsCount, statementsCount, badCatchClauses);
+	private Statistics(uint expressionsCount, uint statementsCount,
+		ImmutableDictionary<FileInfo, ImmutableArray<CatchClauseSyntax>> badCatchClauses,
+		ImmutableDictionary<FileInfo, ImmutableArray<CatchClauseSyntax>> emptyCatchBlockWithFilterClauses) =>
+		(this.ExpressionsCount, this.StatementsCount, this.BadCatchClauses, this.EmptyCatchBlockWithFilterClauses) =
+			(expressionsCount, statementsCount, badCatchClauses, emptyCatchBlockWithFilterClauses);
 
 	internal ImmutableDictionary<FileInfo, ImmutableArray<CatchClauseSyntax>> BadCatchClauses { get; } = ImmutableDictionary<FileInfo, ImmutableArray<CatchClauseSyntax>>.Empty;
-	internal uint BadCatchBlocksCount { get; }
+	internal ImmutableDictionary<FileInfo, ImmutableArray<CatchClauseSyntax>> EmptyCatchBlockWithFilterClauses { get; } = ImmutableDictionary<FileInfo, ImmutableArray<CatchClauseSyntax>>.Empty;
 	internal uint ExpressionsCount { get; }
 	internal uint StatementsCount { get; }
 }

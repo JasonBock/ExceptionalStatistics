@@ -9,7 +9,7 @@ public sealed class StatisticsGatherer
 {
 	public StatisticsGatherer([MaybeNull] FileInfo file, string code)
 	{
-		(this.ExpressionsCount, this.StatementsCount, this.BadCatchBlocksCount, this.BadCatchClauses) =
+		(this.ExpressionsCount, this.StatementsCount, this.BadCatchClauses, this.EmptyCatchBlockWithFilterClauses) =
 			new StatisticsWalker(SyntaxFactory.ParseCompilationUnit(code));
 		this.File = file;
 	}
@@ -19,7 +19,7 @@ public sealed class StatisticsGatherer
 	{ }
 
 	public ImmutableArray<CatchClauseSyntax> BadCatchClauses { get; }
-	public uint BadCatchBlocksCount { get; }
+	public ImmutableArray<CatchClauseSyntax> EmptyCatchBlockWithFilterClauses { get; }
 	public uint ExpressionsCount { get; }
 	public FileInfo? File { get; }
 	public uint StatementsCount { get; }
@@ -27,14 +27,16 @@ public sealed class StatisticsGatherer
 	private sealed class StatisticsWalker
 		: CSharpSyntaxWalker
 	{
-		private readonly List<CatchClauseSyntax> catchClauses = new();
+		private readonly List<CatchClauseSyntax> badCatchClauses = new();
+		private readonly List<CatchClauseSyntax> emptyCatchBlockWithFilterClauses = new();
 
 		public StatisticsWalker(CompilationUnitSyntax unit) => this.VisitCompilationUnit(unit);
 
-		public void Deconstruct(out uint expressionsCount, out uint statementsCount, out uint badCatchBlocksCount,
-			out ImmutableArray<CatchClauseSyntax> badCatchClauses) =>
-			(expressionsCount, statementsCount, badCatchBlocksCount, badCatchClauses) =
-				(this.ExpressionsCount, this.StatementsCount, this.BadCatchBlocksCount, this.BadCatchClauses);
+		public void Deconstruct(out uint expressionsCount, out uint statementsCount, 
+			out ImmutableArray<CatchClauseSyntax> badCatchClauses,
+			out ImmutableArray<CatchClauseSyntax> emptyCatchBlockWithFilterClauses) =>
+			(expressionsCount, statementsCount, badCatchClauses, emptyCatchBlockWithFilterClauses) =
+				(this.ExpressionsCount, this.StatementsCount, this.BadCatchClauses, this.EmptyCatchBlockWithFilterClauses);
 
 		#region Statements
 		public override void VisitExpressionStatement(ExpressionStatementSyntax node)
@@ -487,9 +489,6 @@ public sealed class StatisticsGatherer
 
 			// TODO: I could probably just use "catchDeclaration.Identifier.Text"
 			// instead of ToString()
-
-			// TODO: I wonder how many of these have associated filters -
-			// i.e. the node has a CatchFilterClauseSyntax as a descendant.
 			if (!node.Block.DescendantNodes(_ => true).Any())
 			{
 				var catchDeclaration = node.DescendantNodes().OfType<CatchDeclarationSyntax>().SingleOrDefault();
@@ -498,16 +497,22 @@ public sealed class StatisticsGatherer
 					catchDeclaration.Type.ToString() == "Exception" ||
 					catchDeclaration.Type.ToString() == "System.Exception")
 				{
-					this.catchClauses.Add(node);
-					this.BadCatchBlocksCount++;
+					if (node.DescendantNodes().OfType<CatchFilterClauseSyntax>().SingleOrDefault() is not null)
+					{
+						this.emptyCatchBlockWithFilterClauses.Add(node);
+					}
+					else
+					{
+						this.badCatchClauses.Add(node);
+					}
 				}
 			}
 
 			base.VisitCatchClause(node);
 		}
 
-		public ImmutableArray<CatchClauseSyntax> BadCatchClauses => this.catchClauses.ToImmutableArray();
-		public uint BadCatchBlocksCount { get; private set; }
+		public ImmutableArray<CatchClauseSyntax> BadCatchClauses => this.badCatchClauses.ToImmutableArray();
+		public ImmutableArray<CatchClauseSyntax> EmptyCatchBlockWithFilterClauses => this.emptyCatchBlockWithFilterClauses.ToImmutableArray();
 		public uint ExpressionsCount { get; private set; }
 		public uint StatementsCount { get; private set; }
 	}
