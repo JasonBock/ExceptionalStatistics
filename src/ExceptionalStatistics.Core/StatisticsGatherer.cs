@@ -1,18 +1,27 @@
 ﻿using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace ExceptionalStatistics.Core;
 
 public sealed class StatisticsGatherer
 {
-	public StatisticsGatherer(string code) =>
+	public StatisticsGatherer([MaybeNull] FileInfo file, string code)
+	{
 		(this.ExpressionsCount, this.StatementsCount, this.BadCatchBlocksCount, this.BadCatchClauses) =
 			new StatisticsWalker(SyntaxFactory.ParseCompilationUnit(code));
+		this.File = file;
+	}
+
+	public StatisticsGatherer(string code) :
+		this(null!, code)
+	{ }
 
 	public ImmutableArray<CatchClauseSyntax> BadCatchClauses { get; }
 	public uint BadCatchBlocksCount { get; }
 	public uint ExpressionsCount { get; }
+	public FileInfo? File { get; }
 	public uint StatementsCount { get; }
 
 	private sealed class StatisticsWalker
@@ -22,7 +31,7 @@ public sealed class StatisticsGatherer
 
 		public StatisticsWalker(CompilationUnitSyntax unit) => this.VisitCompilationUnit(unit);
 
-		public void Deconstruct(out uint expressionsCount, out uint statementsCount, out uint badCatchBlocksCount, 
+		public void Deconstruct(out uint expressionsCount, out uint statementsCount, out uint badCatchBlocksCount,
 			out ImmutableArray<CatchClauseSyntax> badCatchClauses) =>
 			(expressionsCount, statementsCount, badCatchBlocksCount, badCatchClauses) =
 				(this.ExpressionsCount, this.StatementsCount, this.BadCatchBlocksCount, this.BadCatchClauses);
@@ -476,10 +485,11 @@ public sealed class StatisticsGatherer
 			// or the name of the CatchDeclarationSyntax child
 			// is either "Exception" or "System.Exception"
 
-			// TODO: I may have to try and "get" a SemanticModel
-			// to determine exactly what the exception type is.
+			// TODO: I could probably just use "catchDeclaration.Identifier.Text"
+			// instead of ToString()
 
-			// TODO: I wonder how many of these have associated filters.
+			// TODO: I wonder how many of these have associated filters -
+			// i.e. the node has a CatchFilterClauseSyntax as a descendant.
 			if (!node.Block.DescendantNodes(_ => true).Any())
 			{
 				var catchDeclaration = node.DescendantNodes().OfType<CatchDeclarationSyntax>().SingleOrDefault();

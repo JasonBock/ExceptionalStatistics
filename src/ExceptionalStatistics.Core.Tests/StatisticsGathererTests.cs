@@ -4,6 +4,8 @@ namespace ExceptionalStatistics.Core.Tests;
 
 public static class StatisticsGathererTests
 {
+	// TODO: Add tests for passing in a file
+
 	[Test]
 	public static void CheckStatementsCount()
 	{
