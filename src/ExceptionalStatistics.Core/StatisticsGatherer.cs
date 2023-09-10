@@ -7,21 +7,13 @@ namespace ExceptionalStatistics.Core;
 
 public sealed class StatisticsGatherer
 {
-	public StatisticsGatherer([MaybeNull] FileInfo file, string code)
-	{
+   public StatisticsGatherer(string code) => 
 		(this.ExpressionsCount, this.StatementsCount, this.BadCatchClauses, this.EmptyCatchBlockWithFilterClauses) =
-			new StatisticsWalker(SyntaxFactory.ParseCompilationUnit(code));
-		this.File = file;
-	}
+		   new StatisticsWalker(SyntaxFactory.ParseCompilationUnit(code));
 
-	public StatisticsGatherer(string code) :
-		this(null!, code)
-	{ }
-
-	public ImmutableArray<CatchClauseSyntax> BadCatchClauses { get; }
+   public ImmutableArray<CatchClauseSyntax> BadCatchClauses { get; }
 	public ImmutableArray<CatchClauseSyntax> EmptyCatchBlockWithFilterClauses { get; }
 	public uint ExpressionsCount { get; }
-	public FileInfo? File { get; }
 	public uint StatementsCount { get; }
 
 	private sealed class StatisticsWalker

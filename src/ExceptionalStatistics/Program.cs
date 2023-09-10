@@ -13,14 +13,14 @@ var fileCount = 0;
 
 var forLock = new object();
 
-await Parallel.ForEachAsync(Directory.EnumerateFiles("M:\\repos\\roslyn", "*.cs", SearchOption.AllDirectories),
+await Parallel.ForEachAsync(Directory.EnumerateFiles("M:\\repos\\roslyn2", "*.cs", SearchOption.AllDirectories),
 	async (file, token) =>
 	{
 		Interlocked.Increment(ref fileCount);
 		var code = await File.ReadAllTextAsync(file, token).ConfigureAwait(false);
 		lock (forLock)
 		{
-			statistics += new StatisticsGatherer(new FileInfo(file), code);
+			statistics += (new FileInfo(file), new StatisticsGatherer(code));
 		}
 	}).ConfigureAwait(false);
 
@@ -100,14 +100,14 @@ internal sealed class Statistics
 {
 	internal Statistics() { }
 
-	public static Statistics operator +(Statistics left, StatisticsGatherer right) =>
-		new(left.ExpressionsCount + right.ExpressionsCount,
-			left.StatementsCount + right.StatementsCount,
-			right.BadCatchClauses.Length > 0 ? 
-				left.BadCatchClauses.Add(right.File!, right.BadCatchClauses) : 
+	public static Statistics operator +(Statistics left, (FileInfo file, StatisticsGatherer gatherer) right) =>
+		new(left.ExpressionsCount + right.gatherer.ExpressionsCount,
+			left.StatementsCount + right.gatherer.StatementsCount,
+			right.gatherer.BadCatchClauses.Length > 0 ? 
+				left.BadCatchClauses.Add(right.file!, right.gatherer.BadCatchClauses) : 
 				left.BadCatchClauses,
-			right.EmptyCatchBlockWithFilterClauses.Length > 0 ? 
-				left.EmptyCatchBlockWithFilterClauses.Add(right.File!, right.EmptyCatchBlockWithFilterClauses) : 
+			right.gatherer.EmptyCatchBlockWithFilterClauses.Length > 0 ? 
+				left.EmptyCatchBlockWithFilterClauses.Add(right.file, right.gatherer.EmptyCatchBlockWithFilterClauses) : 
 			left.EmptyCatchBlockWithFilterClauses);
 
 	private Statistics(uint expressionsCount, uint statementsCount,
