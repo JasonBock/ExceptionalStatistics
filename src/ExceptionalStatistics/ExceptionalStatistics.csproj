@@ -1,8 +1,30 @@
 <Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
+		<ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+		<IncludeSymbols>true</IncludeSymbols>
 		<OutputType>Exe</OutputType>
+		<PackageId>ExceptionalStatistics</PackageId>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<PackageProjectUrl>https://github.com/JasonBock/ExceptionalStatistics</PackageProjectUrl>
+		<PackageReadmeFile>README.md</PackageReadmeFile>
+		<PackageReleaseNotes>A changelog is available at https://github.com/JasonBock/ExceptionalStatistics/blob/main/changelog.md</PackageReleaseNotes>
+		<PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+		<PackageTags>Exceptions C# .NET</PackageTags>
+		<PackageVersion>$(Version)</PackageVersion>
+		<PackAsTool>true</PackAsTool>
+		<RepositoryType>git</RepositoryType>
+		<RepositoryUrl>https://github.com/JasonBock/ExceptionalStatistics</RepositoryUrl>
+		<SymbolPackageFormat>snupkg</SymbolPackageFormat>
 	</PropertyGroup>
 	<ItemGroup>
+		<None Remove="*.nupkg" />
+	</ItemGroup>
+	<ItemGroup>
 		<ProjectReference Include="..\ExceptionalStatistics.Core\ExceptionalStatistics.Core.csproj" />
+	</ItemGroup>
+	<ItemGroup>
+		<None Include="..\..\README.md" Pack="true" PackagePath="" />
+		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
 	</ItemGroup>
 </Project>
