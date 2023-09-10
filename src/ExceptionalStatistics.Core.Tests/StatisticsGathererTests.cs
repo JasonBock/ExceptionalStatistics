@@ -11,20 +11,22 @@ public static class StatisticsGathererTests
 	public static void CheckStatementsCount()
 	{
 		var code =
-@"public static class Test
-{
-	public static int DoSomething()
-	{
-		var result = 0;
+			"""
+			public static class Test
+			{
+				public static int DoSomething()
+				{
+					var result = 0;
 
-		for(var i = 0; i < 10; i++)
-		{
-			result += i;
-		}
+					for(var i = 0; i < 10; i++)
+					{
+						result += i;
+					}
 
-		return result;
-	}
-}";
+					return result;
+				}
+			}
+			""";
 		var gatherer = new StatisticsGatherer(code);
 		Assert.That(gatherer.StatementsCount, Is.GreaterThan(0));
 	}
@@ -33,14 +35,16 @@ public static class StatisticsGathererTests
 	public static void CheckExpressionsCount()
 	{
 		var code =
-@"public static class Test
-{
-	public static int DoSomething()
-	{
-		var x = () => 3;
-		return x();
-	}
-}";
+			"""
+			public static class Test
+			{
+				public static int DoSomething()
+				{
+					var x = () => 3;
+					return x();
+				}
+			}
+			""";
 		var gatherer = new StatisticsGatherer(code);
 		Assert.That(gatherer.ExpressionsCount, Is.GreaterThan(0));
 	}
@@ -49,16 +53,18 @@ public static class StatisticsGathererTests
 	public static void CheckBadCatchBlockCountWhenBlockIsEmptyAndNoCatchDeclarationIsMade()
 	{
 		var code =
-@"public static class Test
-{
-	public static void DoSomething()
-	{
-		try
-		{
-		}
-		catch { }
-	}
-}";
+			"""
+			public static class Test
+			{
+				public static void DoSomething()
+				{
+					try
+					{
+					}
+					catch { }
+				}
+			}
+			""";
 		var gatherer = new StatisticsGatherer(code);
 		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(1));
 	}
@@ -67,19 +73,21 @@ public static class StatisticsGathererTests
 	public static void CheckBadCatchBlockCountWhenBlockIsNotEmptyAndNoCatchDeclarationIsMade()
 	{
 		var code =
-@"public static class Test
-{
-	public static void DoSomething()
-	{
-		try
-		{
-		}
-		catch 
-		{ 
-			Console.WriteLine(""Hi."");
-		}
-	}
-}";
+			"""
+			public static class Test
+			{
+				public static void DoSomething()
+				{
+					try
+					{
+					}
+					catch 
+					{ 
+						Console.WriteLine("Hi.");
+					}
+				}
+			}
+			""";
 		var gatherer = new StatisticsGatherer(code);
 		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(0));
 	}
@@ -88,18 +96,20 @@ public static class StatisticsGathererTests
 	public static void CheckBadCatchBlockCountWhenBlockIsEmptyAndCatchDeclarationIsMadeForArgumentException()
 	{
 		var code =
-@"using System;
+			"""
+			using System;
 
-public static class Test
-{
-	public static void DoSomething()
-	{
-		try
-		{
-		}
-		catch (ArgumentException) { }
-	}
-}";
+			public static class Test
+			{
+				public static void DoSomething()
+				{
+					try
+					{
+					}
+					catch (ArgumentException) { }
+				}
+			}
+			""";
 		var gatherer = new StatisticsGatherer(code);
 		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(0));
 	}
@@ -108,18 +118,20 @@ public static class Test
 	public static void CheckBadCatchBlockCountWhenBlockIsEmptyAndCatchDeclarationIsMadeForException()
 	{
 		var code =
-@"using System;
+			"""
+			using System;
 
-public static class Test
-{
-	public static void DoSomething()
-	{
-		try
-		{
-		}
-		catch (Exception) { }
-	}
-}";
+			public static class Test
+			{
+				public static void DoSomething()
+				{
+					try
+					{
+					}
+					catch (Exception) { }
+				}
+			}
+			""";
 		var gatherer = new StatisticsGatherer(code);
 		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(1));
 	}
@@ -128,21 +140,23 @@ public static class Test
 	public static void CheckBadCatchBlockCountWhenBlockIsNotEmptyAndCatchDeclarationIsMadeForException()
 	{
 		var code =
-@"using System;
+			"""
+			using System;
 
-public static class Test
-{
-	public static void DoSomething()
-	{
-		try
-		{
-		}
-		catch (Exception) 
-		{
-			Console.WriteLine(""I'm in the catch block."");
-		}
-	}
-}";
+			public static class Test
+			{
+				public static void DoSomething()
+				{
+					try
+					{
+					}
+					catch (Exception) 
+					{
+						Console.WriteLine("I'm in the catch block.");
+					}
+				}
+			}
+			""";
 		var gatherer = new StatisticsGatherer(code);
 		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(0));
 	}
@@ -151,16 +165,18 @@ public static class Test
 	public static void CheckBadCatchBlockCountWhenBlockIsEmptyAndCatchDeclarationIsMadeForSystemException()
 	{
 		var code =
-@"public static class Test
-{
-	public static void DoSomething()
-	{
-		try
-		{
-		}
-		catch (System.Exception) { }
-	}
-}";
+			"""
+			public static class Test
+			{
+				public static void DoSomething()
+				{
+					try
+					{
+					}
+					catch (System.Exception) { }
+				}
+			}
+			""";
 		var gatherer = new StatisticsGatherer(code);
 		Assert.That(gatherer.BadCatchClauses.Length, Is.EqualTo(1));
 	}
