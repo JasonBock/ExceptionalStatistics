@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "ExceptionalStatistics": {
+      "commandName": "Project",
+      "commandLineArgs": "--sln \"M:\\repos\\roslyn2\\Roslyn.sln\""
+    }
+  }
+}
