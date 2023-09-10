@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Numerics;
 
 var stopwatch = Stopwatch.StartNew();
 
@@ -97,6 +98,7 @@ stopwatch.Stop();
 await Console.Out.WriteLineAsync($"Total time: {stopwatch.Elapsed}").ConfigureAwait(false);
 
 internal sealed class Statistics
+	: IAdditionOperators<Statistics, (FileInfo file, StatisticsGatherer gatherer), Statistics>
 {
 	internal Statistics() { }
 
