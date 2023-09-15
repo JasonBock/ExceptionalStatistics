@@ -1,5 +1,6 @@
 ﻿using ExceptionalStatistics.Core;
 using Microsoft.Build.Locator;
+using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.MSBuild;
 using System.Collections.Immutable;
@@ -93,31 +94,32 @@ rootCommand.SetHandler(async (solutionOptionValue, directoryOptionValue) =>
 
 	if (solutionOptionValue is not null)
 	{
+		Console.WriteLine($"Processing {solutionOptionValue.FullName} ...");
+		var forLock = new object();
+
 		MSBuildLocator.RegisterDefaults();
 
-		// TODO: Would be nice if we did a async consumer/producer model here.
 		using (var workspace = MSBuildWorkspace.Create())
 		{
 			var solution = await workspace.OpenSolutionAsync(solutionOptionValue.FullName).ConfigureAwait(false);
 
-			foreach (var project in solution.Projects)
-			{
-				foreach (var document in project.Documents)
+			await Parallel.ForEachAsync(EnumerateSolutionCodeFiles(solution),
+				async (file, token) =>
 				{
-					var documentPath = document.FilePath!;
-					if (Path.GetExtension(documentPath) == ".cs")
+					var code = await File.ReadAllTextAsync(file, token).ConfigureAwait(false);
+
+					lock (forLock)
 					{
-						var code = await File.ReadAllTextAsync(documentPath).ConfigureAwait(false);
-						statistics += (new FileInfo(documentPath), new StatisticsGatherer(code));
+						statistics += (new FileInfo(file), new StatisticsGatherer(code));
 					}
-				}
-			}
+				}).ConfigureAwait(false);
 		}
 
 		await PrintStatisticsAsync(statistics).ConfigureAwait(false);
 	}
 	else if (directoryOptionValue is not null)
 	{
+		Console.WriteLine($"Processing {directoryOptionValue.FullName} ...");
 		var forLock = new object();
 
 		await Parallel.ForEachAsync(Directory.EnumerateFiles(directoryOptionValue.FullName, "*.cs", SearchOption.AllDirectories),
@@ -145,6 +147,24 @@ rootCommand.SetHandler(async (solutionOptionValue, directoryOptionValue) =>
 solutionOption, directoryOption);
 
 await rootCommand.InvokeAsync(args).ConfigureAwait(false);
+
+static IEnumerable<string> EnumerateSolutionCodeFiles(Solution solution)
+{
+	var visitedFiles = new HashSet<string>();
+
+	foreach (var project in solution.Projects)
+	{
+		foreach (var document in project.Documents)
+		{
+			var documentPath = document.FilePath!;
+
+			if (visitedFiles.Add(documentPath) && Path.GetExtension(documentPath) == ".cs")
+			{
+				yield return documentPath;
+			}
+		}
+	}
+}
 
 static async Task PrintStatisticsAsync(Statistics statistics)
 {
@@ -223,15 +243,18 @@ internal sealed class Statistics
 	internal Statistics() { }
 
 	public static Statistics operator +(Statistics left, (FileInfo file, StatisticsGatherer gatherer) right) =>
+
 		new(left.ExpressionsCount + right.gatherer.ExpressionsCount,
 			left.StatementsCount + right.gatherer.StatementsCount,
 			left.FileCount + 1,
 			right.gatherer.BadCatchClauses.Length > 0 ?
-				left.BadCatchClauses.Add(right.file!, right.gatherer.BadCatchClauses) :
+				left.BadCatchClauses.ContainsKey(right.file) ?
+					left.BadCatchClauses : left.BadCatchClauses.Add(right.file, right.gatherer.BadCatchClauses) :
 				left.BadCatchClauses,
 			right.gatherer.EmptyCatchBlockWithFilterClauses.Length > 0 ?
-				left.EmptyCatchBlockWithFilterClauses.Add(right.file, right.gatherer.EmptyCatchBlockWithFilterClauses) :
-			left.EmptyCatchBlockWithFilterClauses);
+				left.EmptyCatchBlockWithFilterClauses.ContainsKey(right.file) ?
+					left.EmptyCatchBlockWithFilterClauses : left.EmptyCatchBlockWithFilterClauses.Add(right.file, right.gatherer.EmptyCatchBlockWithFilterClauses) :
+				left.EmptyCatchBlockWithFilterClauses);
 
 	private Statistics(uint expressionsCount, uint statementsCount, uint fileCount,
 		ImmutableDictionary<FileInfo, ImmutableArray<CatchClauseSyntax>> badCatchClauses,

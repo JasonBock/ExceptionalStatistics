@@ -4,6 +4,7 @@
 		<GeneratePackageOnBuild>true</GeneratePackageOnBuild>
 		<IncludeSymbols>true</IncludeSymbols>
 		<OutputType>Exe</OutputType>
+		<PackageIcon>Icon.png</PackageIcon>
 		<PackageId>ExceptionalStatistics</PackageId>
 		<PackageLicenseFile>LICENSE</PackageLicenseFile>
 		<PackageProjectUrl>https://github.com/JasonBock/ExceptionalStatistics</PackageProjectUrl>
@@ -26,11 +27,13 @@
 	<ItemGroup>
 		<None Include="..\..\README.md" Pack="true" PackagePath="" />
 		<None Include="..\..\LICENSE" Pack="true" PackagePath="" />
+		<None Include="..\Icon.png" Pack="true" PackagePath="" Visible="false" />
 	</ItemGroup>
 	<ItemGroup>
 		<PackageReference Include="Microsoft.Build.Locator" />
 		<PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" />
 		<PackageReference Include="Microsoft.CodeAnalysis.Workspaces.MSBuild" />
+		<PackageReference Include="Microsoft.SourceLink.GitHub" />
 		<PackageReference Include="System.CommandLine" />
 	</ItemGroup>
 </Project>
